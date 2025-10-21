@@ -1,0 +1,87 @@
+services:
+  # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - micro_network
+
+  # MongoDB
+  mymongodb:
+    image: mongo:7.0
+    container_name: mymongodb
+    restart: always
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - micro_network
+
+  # API Gateway
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "3003:3003"
+    depends_on:
+      - auth
+      - order
+      - product
+    networks:
+      - micro_network
+
+  # Auth Service
+  auth:
+    build: ./auth
+    container_name: auth
+    env_file:
+      - ./auth/.env
+    depends_on:
+      - mymongodb
+      - rabbitmq
+    ports:
+      - "3000:3000"
+    networks:
+      - micro_network
+
+  # Product Service
+  product:
+    build: ./product
+    container_name: product
+    env_file:
+      - ./product/.env
+    depends_on:
+      - mymongodb
+      - rabbitmq
+    ports:
+      - "3001:3001"
+    networks:
+      - micro_network
+
+  # Order Service
+  order:
+    build: ./order
+    container_name: order
+    env_file:
+      - ./order/.env
+    depends_on:
+      - mymongodb
+      - rabbitmq
+    ports:
+      - "3002:3002"
+    networks:
+      - micro_network
+
+    command: sh -c "sleep 10 && npm start"
+
+volumes:
+  mongo_data:
+
+
+networks:
+  micro_network:
+    driver: bridge
