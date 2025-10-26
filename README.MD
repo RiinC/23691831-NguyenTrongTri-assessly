@@ -74,27 +74,27 @@ Tạo file `.env` trong từng thư mục `auth/`, `product/`, và `order/` vớ
 
 - Auth Service (`auth/.env`):
 ```env
-MONGODB_AUTH_URI=
-JWT_SECRET=
-RABBITMQ_URI=
+MONGODB_AUTH_URI=mongodb+srv://<username>:<password>@<cluster-name>.mongodb.net/<auth-database>
+JWT_SECRET=your_jwt_secret_key
+RABBITMQ_URI=amqp://<username>:<password>@<host>:<port>
 ```
 
 - Product Service (`product/.env`):
 ```env
-MONGODB_PRODUCT_URI=
-JWT_SECRET=
-RABBITMQ_URI=
+MONGODB_PRODUCT_URI=mongodb+srv://<username>:<password>@<cluster-name>.mongodb.net/<product-database>
+JWT_SECRET=your_jwt_secret_key
+RABBITMQ_URI=amqp://<username>:<password>@<host>:<port>
 
 # Tuỳ chọn cho kiểm thử
-LOGIN_TEST_USER=
-LOGIN_TEST_PASSWORD=
+LOGIN_TEST_USER=test@example.com
+LOGIN_TEST_PASSWORD=test_password
 ```
 
 - Order Service (`order/.env`):
 ```env
-MONGODB_ORDER_URI=
-JWT_SECRET=
-RABBITMQ_URI=
+MONGODB_ORDER_URI=mongodb+srv://<username>:<password>@<cluster-name>.mongodb.net/<order-database>
+JWT_SECRET=your_jwt_secret_key
+RABBITMQ_URI=amqp://<username>:<password>@<host>:<port>
 ```
 
 ⚠️ **Lưu ý:** 
