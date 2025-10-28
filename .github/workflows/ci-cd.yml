@@ -67,7 +67,7 @@ jobs:
       - name: Build & start Docker Compose
         run: |
           docker compose build auth || true
-          docker compose up -d mymongodb rabbitmq auth
+          docker compose up -d auth
 
       # 4️⃣ Chờ auth service sẵn sàng
       - name: Wait for Auth Service
