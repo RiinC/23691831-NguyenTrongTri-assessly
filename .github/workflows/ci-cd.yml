@@ -1,0 +1,117 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  ci-cd:
+    runs-on: ubuntu-latest
+    permissions: write-all
+
+    services:
+      # MongoDB nội bộ cho các container
+      mymongodb:
+        image: mongo:7.0
+        ports:
+          - 27018:27017
+        options: >-
+          --health-cmd="mongosh --eval 'db.adminCommand(\"ping\")'" 
+          --health-interval=10s 
+          --health-timeout=5s 
+          --health-retries=5
+
+      # RabbitMQ nội bộ
+      rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+          - 5672:5672
+          - 15672:15672
+
+    steps:
+      # 1️⃣ Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Set up environment files cho từng service từ GitHub Secrets
+      - name: Setup .env files
+        run: |
+          # Auth service
+          cat > auth/.env <<EOF
+          MONGODB_URI=${{ secrets.MONGODB_AUTH_URI }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          RABBITMQ_URI=${{ secrets.RABBITMQ_URI }}
+          EOF
+
+          # Product service
+          cat > product/.env <<EOF
+          MONGODB_URI=${{ secrets.MONGODB_PRODUCT_URI }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          RABBITMQ_URI=${{ secrets.RABBITMQ_URI }}
+          LOGIN_TEST_USER=${{ secrets.LOGIN_TEST_USER }}
+          LOGIN_TEST_PASSWORD=${{ secrets.LOGIN_TEST_PASSWORD }}
+          EOF
+
+          # Order service
+          cat > order/.env <<EOF
+          MONGODB_URI=${{ secrets.MONGODB_ORDER_URI }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          RABBITMQ_URI=${{ secrets.RABBITMQ_URI }}
+          AUTH_SERVICE_URL=http://auth:3000
+          PRODUCT_SERVICE_URL=http://product:3001
+          EOF
+
+      # 3️⃣ Build và start các service cần thiết
+      - name: Build & start Docker Compose
+        run: |
+          docker compose build auth || true
+          docker compose up -d mymongodb rabbitmq auth
+
+      # 4️⃣ Chờ auth service sẵn sàng
+      - name: Wait for Auth Service
+        run: |
+          for i in $(seq 1 30); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ || true)
+            if [ "$STATUS" != "000" ]; then
+              echo "Auth responded with HTTP $STATUS" && break
+            fi
+            echo "Waiting for auth... ($i)" && sleep 2
+          done
+
+      # 5️⃣ Chạy test cho product trên runner
+      - name: Install dependencies & run product tests
+        working-directory: product
+        run: |
+          npm ci
+          npm test
+
+      # 6️⃣ Build Docker images cho tất cả các service
+      - name: Build Docker Images
+        run: |
+          docker compose build
+
+      # 7️⃣ Login Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 8️⃣ Push Docker images lên Docker Hub
+      - name: Push Docker Images
+        run: |
+          docker tag auth riinc05/auth:latest
+          docker tag product riinc05/product:latest
+          docker tag order riinc05/order:latest
+          docker tag api-gateway riinc05/api-gateway:latest
+          docker push riinc05/auth:latest
+          docker push riinc05/product:latest
+          docker push riinc05/order:latest
+          docker push riinc05/api-gateway:latest
+
+      # 9️⃣ Tear down docker-compose
+      - name: Tear down Docker Compose
+        if: always()
+        run: docker compose down --volumes
