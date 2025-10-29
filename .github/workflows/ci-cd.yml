@@ -22,14 +22,6 @@ jobs:
           --health-interval=10s 
           --health-timeout=5s 
           --health-retries=5
-
-      # RabbitMQ nội bộ
-      rabbitmq:
-        image: rabbitmq:3-management
-        ports:
-          - 5672:5672
-          - 15672:15672
-
     steps:
       # 1️⃣ Checkout code
       - name: Checkout repository
@@ -66,8 +58,7 @@ jobs:
       # 3️⃣ Build và start các service cần thiết
       - name: Build & start Docker Compose
         run: |
-          docker compose build auth || true
-          docker compose up -d auth
+          docker compose -f docker-compose.yml up -d --build
 
       # 4️⃣ Chờ auth service sẵn sàng
       - name: Wait for Auth Service
