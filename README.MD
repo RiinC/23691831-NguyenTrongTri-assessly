@@ -84,6 +84,7 @@ RABBITMQ_URI=amqp://<username>:<password>@<host>:<port>
 MONGODB_PRODUCT_URI=mongodb+srv://<username>:<password>@<cluster-name>.mongodb.net/<product-database>
 JWT_SECRET=your_jwt_secret_key
 RABBITMQ_URI=amqp://<username>:<password>@<host>:<port>
+AUTH_SERVICE_URL=http://auth:3000
 
 # Tuỳ chọn cho kiểm thử
 LOGIN_TEST_USER=test@example.com

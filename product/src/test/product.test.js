@@ -14,9 +14,11 @@ describe("Products", () => {
     app = new App();
     await Promise.all([app.connectDB(), app.setupMessageBroker()])
 
+    const authURL = process.env.AUTH_SERVICE_URL || "http://localhost:3000";
+
     // Authenticate with the auth microservice to get a token
     const authRes = await chai
-      .request("http://localhost:3000")
+      .request(authURL)
       .post("/login")
       .send({ username: process.env.LOGIN_TEST_USER, password: process.env.LOGIN_TEST_PASSWORD });
 
@@ -42,10 +44,10 @@ describe("Products", () => {
         .post("/api/products")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
-            name: "Product 1",
-            price: 10,
-            description: "Description of Product 1"
-          });
+          name: "Product 1",
+          price: 10,
+          description: "Description of Product 1"
+        });
 
       expect(res).to.have.status(201);
       expect(res.body).to.have.property("_id");
