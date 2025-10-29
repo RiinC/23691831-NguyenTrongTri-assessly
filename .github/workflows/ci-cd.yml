@@ -26,9 +26,23 @@ jobs:
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }} 
-          password: ${{ secrets.DOCKERHUB_TOKEN }}   
+          password: ${{ secrets.DOCKERHUB_TOKEN }}    
 
-      # Step 4: Set up environment variables from GitHub Secrets
+      # Step 4: Login to GitHub Container Registry (GHCR)
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.GH_ACTOR }}  
+          password: ${{ secrets.GH_TOKEN }}    
+
+      # Step 5: Install Docker Compose (since it may not be installed on the runner)
+      - name: Install Docker Compose
+        run: |
+          curl -L https://github.com/docker/compose/releases/download/v2.10.0/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose --version  # Verify Docker Compose installation
+
+      # Step 6: Set up environment variables from GitHub Secrets
       - name: Set up environment variables
         run: |
           echo "MONGODB_AUTH_URI=${{ secrets.MONGODB_AUTH_URI }}" >> $GITHUB_ENV
@@ -38,13 +52,13 @@ jobs:
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> $GITHUB_ENV
           echo "AUTH_SERVICE_URL=${{ secrets.AUTH_SERVICE_URL }}" >> $GITHUB_ENV
 
-      # Step 5: Build Docker images for each service
+      # Step 7: Build Docker images for each service
       - name: Build Docker images
         run: |
           docker-compose -f docker-compose.yml build
 
-      # Step 6: Push Docker images to Docker Hub
-      - name: Push Docker images to Docker Hub
+      # Step 8: Push Docker images to Docker Hub and GHCR
+      - name: Push Docker images to Docker Hub and GHCR
         run: |
           docker-compose -f docker-compose.yml push
 
