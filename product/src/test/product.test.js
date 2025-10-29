@@ -14,7 +14,7 @@ describe("Products", () => {
     app = new App();
     await Promise.all([app.connectDB(), app.setupMessageBroker()])
 
-    const authURL = process.env.AUTH_SERVICE_URL || "http://localhost:3000";
+    const authURL = process.env.AUTH_SERVICE_URL;
 
     // Authenticate with the auth microservice to get a token
     const authRes = await chai
