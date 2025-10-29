@@ -43,58 +43,87 @@ jobs:
           RABBITMQ_URI=${{ secrets.RABBITMQ_URI }}
           EOF
 
-      # 3️⃣ Build và start các service cần thiết
-      - name: Build & start Docker Compose
+      # 3️⃣ Build & start services with docker-compose
+      - name: Build & start services
         run: |
           docker compose -f docker-compose.yml up -d --build
 
-      # 4️⃣ Chờ auth service sẵn sàng
+      # 4️⃣ Wait for Auth Service to become healthy
       - name: Wait for Auth Service
         run: |
           for i in $(seq 1 30); do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ || true)
-            if [ "$STATUS" != "000" ]; then
-              echo "Auth responded with HTTP $STATUS" && break
+            if [ "$STATUS" = "200" ] || [ "$STATUS" = "302" ]; then
+              echo "Auth ready ($STATUS)" && exit 0
             fi
-            echo "Waiting for auth... ($i)" && sleep 2
+            echo "Waiting for auth... ($i)"; sleep 2
           done
+          echo "Auth did not become ready"; exit 1
 
-        # 4️⃣.1️⃣ In ra log khi auth chưa sẵn sàng 
-      - name: Show Auth Service Logs (if failed)
-        if: failure()
-        run: docker compose logs auth
-
-      # 5️⃣ Chạy test cho product trên runner
-      - name: Install dependencies & run product tests
-        working-directory: product
+      # 5️⃣ Run product tests inside the product container
+      - name: Run product tests
         run: |
           docker compose run --rm product npm test
 
-      # 6️⃣ Build Docker images cho tất cả các service
-      - name: Build Docker Images
-        run: |
-          docker compose build
-
-      # 7️⃣ Login Docker Hub
+      # 6️⃣ Login to Docker Hub to push images
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 8️⃣ Push Docker images lên Docker Hub
-      - name: Push Docker Images
-        run: |
-          docker tag auth riinc05/auth:latest
-          docker tag product riinc05/product:latest
-          docker tag order riinc05/order:latest
-          docker tag api-gateway riinc05/api-gateway:latest
-          docker push riinc05/auth:latest
-          docker push riinc05/product:latest
-          docker push riinc05/order:latest
-          docker push riinc05/api-gateway:latest
+      # 7️⃣ Build & push images with buildx (tagged with sha and latest)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
 
-      # 9️⃣ Tear down docker-compose
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push auth image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./auth
+          file: ./auth/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/auth:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/auth:${{ github.sha }}
+          platforms: linux/amd64
+
+      - name: Build and push product image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./product
+          file: ./product/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/product:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/product:${{ github.sha }}
+          platforms: linux/amd64
+
+      - name: Build and push order image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./order
+          file: ./order/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/order:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/order:${{ github.sha }}
+          platforms: linux/amd64
+
+      - name: Build and push api-gateway image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./api-gateway
+          file: ./api-gateway/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/api-gateway:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/api-gateway:${{ github.sha }}
+          platforms: linux/amd64
+
+      # 8️⃣ Tear down docker-compose
       - name: Tear down Docker Compose
         if: always()
         run: docker compose down --volumes
