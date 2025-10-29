@@ -1,4 +1,4 @@
-name: CI/CD Pipeline for Microservices
+name: CI/CD Pipeline with Docker Compose
 
 on:
   push:
@@ -9,94 +9,75 @@ on:
       - main
 
 jobs:
-  # 1️⃣ CONTINUOUS INTEGRATION (Build + Test)
-  build_and_test:
+  build_and_push:
     runs-on: ubuntu-latest
 
-    services:
-      mongo:
-        image: mongo:7.0
-
-      rabbitmq:
-        image: rabbitmq:3-management
-
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      # Test từng service
-      - name: Install and test Auth Service
-        run: |
-          cd auth
-          npm ci
-          npm test || echo "⚠️ No tests found for auth"
-
-      - name: Install and test Product Service
-        run: |
-          cd product
-          npm ci
-          npm test || echo "⚠️ No tests found for product"
-
-      - name: Install and test Order Service
-        run: |
-          cd order
-          npm ci
-          npm test || echo "⚠️ No tests found for order"
-
-      - name: Install and test API Gateway
-        run: |
-          cd api-gateway
-          npm ci
-          npm test || echo "⚠️ No tests found for api-gateway"
-
-  # 2️⃣ CONTINUOUS DEPLOYMENT (Build + Push Docker Images)
-  deploy:
-    needs: build_and_test
-    runs-on: ubuntu-latest
-
-    # Chạy chỉ khi push vào main
-    if: github.ref == 'refs/heads/main'
-
-    steps:
+      # Step 1: Checkout the repository code
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # Step 2: Set up Docker Buildx for building images
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      # Build & push từng image microservice
-      - name: Build and Push Auth Service
-        uses: docker/build-push-action@v5
+      # Step 3: Login to GitHub Container Registry (GHCR)
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
         with:
-          context: ./auth
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/auth-service:latest
+          username: ${{ secrets.GH_ACTOR }}
+          password: ${{ secrets.GH_TOKEN }} 
 
-      - name: Build and Push Product Service
-        uses: docker/build-push-action@v5
-        with:
-          context: ./product
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/product-service:latest
+      # Step 4: Set up environment variables from GitHub Secrets
+      - name: Set up environment variables
+        run: |
+          echo "MONGODB_AUTH_URI=${{ secrets.MONGODB_AUTH_URI }}" >> $GITHUB_ENV
+          echo "MONGODB_ORDER_URI=${{ secrets.MONGODB_ORDER_URI }}" >> $GITHUB_ENV
+          echo "MONGODB_PRODUCT_URI=${{ secrets.MONGODB_PRODUCT_URI }}" >> $GITHUB_ENV
+          echo "RABBITMQ_URI=${{ secrets.RABBITMQ_URI }}" >> $GITHUB_ENV
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> $GITHUB_ENV
+          echo "AUTH_SERVICE_URL=${{ secrets.AUTH_SERVICE_URL }}" >> $GITHUB_ENV
 
-      - name: Build and Push Order Service
-        uses: docker/build-push-action@v5
-        with:
-          context: ./order
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/order-service:latest
+      # Step 5: Build Docker images for each service
+      - name: Build Docker images
+        run: |
+          docker-compose -f docker-compose.yml build
 
-      - name: Build and Push API Gateway
-        uses: docker/build-push-action@v5
-        with:
-          context: ./api-gateway
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/api-gateway:latest
+      # Step 6: Push Docker images to GHCR
+      - name: Push Docker images to GHCR
+        run: |
+          docker-compose -f docker-compose.yml push
+
+  test:
+    needs: build_and_push
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository code
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Step 2: Set up Docker Compose
+      - name: Set up Docker Compose
+        uses: docker/setup-buildx-action@v2
+
+      # Step 3: Run Docker Compose to start services
+      - name: Run services with Docker Compose
+        run: |
+          docker-compose -f docker-compose.yml up -d
+
+      # Step 4: Health check (if applicable, check if services are available)
+      - name: Run health checks (check ports)
+        run: |
+          echo "Checking if api-gateway is listening on port 3003..."
+          nc -zv localhost 3003 || exit 1
+          
+          echo "Checking if auth service is listening on port 3000..."
+          nc -zv localhost 3000 || exit 1
+
+          echo "Health checks passed."
+
+      # Step 5: Shut down Docker Compose
+      - name: Shut down Docker Compose
+        run: |
+          docker-compose -f docker-compose.yml down

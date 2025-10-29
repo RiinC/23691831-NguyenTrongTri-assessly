@@ -18,7 +18,8 @@ services:
 
   # API Gateway
   api-gateway:
-    build: ./api-gateway
+    build:
+      context: ./api-gateway
     container_name: api-gateway
     ports:
       - "3003:3003"
@@ -28,13 +29,19 @@ services:
       - product
     networks:
       - micro_network
+    environment:
+      - MONGODB_AUTH_URI=${MONGODB_AUTH_URI}
+      - MONGODB_ORDER_URI=${MONGODB_ORDER_URI}
+      - MONGODB_PRODUCT_URI=${MONGODB_PRODUCT_URI}
+      - RABBITMQ_URI=${RABBITMQ_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
 
   # Auth Service
   auth:
-    build: ./auth
+    build:
+      context: ./auth
     container_name: auth
-    env_file:
-      - ./auth/.env
     depends_on:
       - mymongodb
       - rabbitmq
@@ -42,13 +49,16 @@ services:
       - "3000:3000"
     networks:
       - micro_network
+    environment:
+      - MONGODB_AUTH_URI=${MONGODB_AUTH_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - RABBITMQ_URI=${RABBITMQ_URI}
 
   # Product Service
   product:
-    build: ./product
+    build:
+      context: ./product
     container_name: product
-    env_file:
-      - ./product/.env
     depends_on:
       - mymongodb
       - rabbitmq
@@ -57,13 +67,16 @@ services:
       - "3001:3001"
     networks:
       - micro_network
+    environment:
+      - MONGODB_PRODUCT_URI=${MONGODB_PRODUCT_URI}
+      - RABBITMQ_URI=${RABBITMQ_URI}
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
 
   # Order Service
   order:
-    build: ./order
+    build:
+      context: ./order
     container_name: order
-    env_file:
-      - ./order/.env
     depends_on:
       - mymongodb
       - rabbitmq
@@ -71,7 +84,10 @@ services:
       - "3002:3002"
     networks:
       - micro_network
-
+    environment:
+      - MONGODB_ORDER_URI=${MONGODB_ORDER_URI}
+      - RABBITMQ_URI=${RABBITMQ_URI}
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
     command: sh -c "sleep 10 && npm start"
 
 volumes:
