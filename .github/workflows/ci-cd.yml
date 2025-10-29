@@ -2,9 +2,9 @@ name: CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   ci-cd:
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Set up environment files cho từng service từ GitHub Secrets
+      # 2️⃣ Setup .env files from GitHub Secrets
       - name: Setup .env files
         run: |
           # Auth service
@@ -43,7 +43,7 @@ jobs:
           RABBITMQ_URI=${{ secrets.RABBITMQ_URI }}
           EOF
 
-      # 3️⃣ Build & start services with docker-compose
+      # 3️⃣ Build & start services with Docker Compose
       - name: Build & start services
         run: |
           docker compose -f docker-compose.yml up -d --build
@@ -77,13 +77,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 7️⃣ Build & push images with buildx (tagged with sha and latest)
+      # 7️⃣ Build & push images with Buildx (tagged with sha and latest)
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      # Build and push images for each service
       - name: Build and push auth image
         uses: docker/build-push-action@v4
         with:
@@ -128,7 +129,7 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/api-gateway:${{ github.sha }}
           platforms: linux/amd64
 
-      # 8️⃣ Tear down docker-compose
+      # 8️⃣ Tear down Docker Compose
       - name: Tear down Docker Compose
         if: always()
         run: docker compose down --volumes
