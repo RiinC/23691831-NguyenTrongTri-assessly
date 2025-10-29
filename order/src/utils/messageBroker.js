@@ -5,7 +5,8 @@ const OrderService = require("../services/orderService");
 class MessageBroker {
   static async connect() {
     try {
-      const connection = await amqp.connect(config.rabbitMQUrl);
+      const amqpUri = process.env.RABBITMQ_URI || config.rabbitMQURI || 'amqp://rabbitmq:5672';
+      const connection = await amqp.connect(amqpUri);
       const channel = await connection.createChannel();
 
       // Declare the order queue

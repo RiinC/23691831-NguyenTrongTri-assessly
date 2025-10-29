@@ -14,7 +14,7 @@ RUN npm ci
 COPY . .
 
 # Expose port của service
-EXPOSE 3001
+EXPOSE 3002
 
 # Lệnh chạy ứng dụng
 CMD ["node", "index.js"]

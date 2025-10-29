@@ -10,7 +10,8 @@ class MessageBroker {
 
     setTimeout(async () => {
       try {
-        const connection = await amqp.connect("amqp://rabbitmq:5672");
+        const rabbitURI = process.env.RABBITMQ_URI || 'amqp://rabbitmq:5672';
+        const connection = await amqp.connect(rabbitURI);
         this.channel = await connection.createChannel();
         await this.channel.assertQueue("products");
         console.log("RabbitMQ connected");

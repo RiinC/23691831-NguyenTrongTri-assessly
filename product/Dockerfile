@@ -13,8 +13,8 @@ RUN npm ci
 # Sao chép toàn bộ mã nguồn
 COPY . .
 
-# Expose port của service
-EXPOSE 3002
+# Expose port của service 
+EXPOSE 3001
 
 # Lệnh chạy ứng dụng
 CMD ["node", "index.js"]

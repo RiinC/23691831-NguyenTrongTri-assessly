@@ -41,8 +41,9 @@ class App {
   }
 
   start() {
-    this.server = this.app.listen(3001, () =>
-      console.log("Server started on port 3001")
+    const port = config.port || process.env.PORT || 3001;
+    this.server = this.app.listen(port, () =>
+      console.log(`Server started on port ${port}`)
     );
   }
 

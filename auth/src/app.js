@@ -38,7 +38,8 @@ class App {
     }
 
     start() {
-        this.server = this.app.listen(3000, () => console.log("Server started on port 3000"));
+        const port = config.port || process.env.PORT || 3000;
+        this.server = this.app.listen(port, () => console.log(`Server started on port ${port}`));
     }
 
     async stop() {
