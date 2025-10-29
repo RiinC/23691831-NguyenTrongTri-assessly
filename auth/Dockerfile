@@ -7,8 +7,8 @@ WORKDIR /app
 # Sao chép file package* 
 COPY package*.json ./
 
-# Cài đặt dependencies
-RUN npm ci
+# Cài đặt dependencies (bao gồm devDependencies để chạy test bên trong image)
+RUN npm ci --include=dev
 
 # Sao chép toàn bộ mã nguồn
 COPY . .

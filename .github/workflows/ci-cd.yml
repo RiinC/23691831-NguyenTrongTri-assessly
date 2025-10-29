@@ -18,32 +18,39 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install and Test Auth
-        working-directory: ./auth
+      # Prepare .env for docker-compose (fall back to internal compose services when secrets not provided)
+      - name: Create compose .env
         run: |
-          npm ci
-          npm test
-        env:
-          MONGODB_AUTH_URI: ${{ secrets.MONGODB_AUTH_URI }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          RABBITMQ_URI: ${{ secrets.RABBITMQ_URI }}
+          cat > .env <<EOF
+          MONGODB_AUTH_URI=${{ secrets.MONGODB_AUTH_URI || 'mongodb://mongo:27017/auth_test' }}
+          MONGODB_PRODUCT_URI=${{ secrets.MONGODB_PRODUCT_URI || 'mongodb://mongo:27017/product_test' }}
+          MONGODB_ORDER_URI=${{ secrets.MONGODB_ORDER_URI || 'mongodb://mongo:27017/order_test' }}
+          RABBITMQ_URI=${{ secrets.RABBITMQ_URI || 'amqp://rabbitmq:5672' }}
+          JWT_SECRET=${{ secrets.JWT_SECRET || 'testsecret' }}
+          AUTH_SERVICE_URL=${{ secrets.AUTH_SERVICE_URL || 'http://api-gateway:3003' }}
+          EOF
 
-      - name: Install and Test Product
-        working-directory: ./product
+      - name: Build and start services (compose)
         run: |
-          npm ci
-          npm test
-        env:
-          MONGODB_PRODUCT_URI: ${{ secrets.MONGODB_PRODUCT_URI }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          RABBITMQ_URI: ${{ secrets.RABBITMQ_URI }}
-          AUTH_SERVICE_URL: ${{ secrets.AUTH_SERVICE_URL }}
+          docker-compose up -d --build
 
-      - name: Run auth tests
+      - name: Wait for Mongo (via auth container)
         run: |
-          # small wait to let database start accepting connections
-          sleep 5
-          docker compose run --rm auth npm test
+          for i in $(seq 1 30); do
+            docker-compose exec -T auth node -e "const net=require('net');const s=net.createConnection({host:'mongo',port:27017},()=>{console.log('ok');s.end();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),3000)" >/dev/null 2>&1 && echo 'Mongo ready' && exit 0 || true
+            echo "Waiting for Mongo... ($i)"; sleep 2
+          done
+          echo 'Mongo did not become ready'; docker-compose logs mongo; docker-compose logs auth; exit 1
+
+      - name: Run auth tests (in-container)
+        run: docker-compose run --rm auth npm test
+
+      - name: Run product tests (in-container)
+        run: docker-compose run --rm product npm test
+
+      - name: Tear down compose (tests)
+        if: always()
+        run: docker-compose down -v
 
   build:
     name: Build Images
