@@ -11,17 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions: write-all
 
-    services:
-      # MongoDB nội bộ cho các container
-      mymongodb:
-        image: mongo:7.0
-        ports:
-          - 27018:27017
-        options: >-
-          --health-cmd="mongosh --eval 'db.adminCommand(\"ping\")'" 
-          --health-interval=10s 
-          --health-timeout=5s 
-          --health-retries=5
     steps:
       # 1️⃣ Checkout code
       - name: Checkout repository
@@ -70,6 +59,11 @@ jobs:
             fi
             echo "Waiting for auth... ($i)" && sleep 2
           done
+
+        # 4️⃣.1️⃣ In ra log khi auth chưa sẵn sàng 
+      - name: Show Auth Service Logs (if failed)
+        if: failure()
+        run: docker compose logs auth
 
       # 5️⃣ Chạy test cho product trên runner
       - name: Install dependencies & run product tests
