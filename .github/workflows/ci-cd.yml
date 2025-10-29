@@ -40,8 +40,6 @@ jobs:
           MONGODB_ORDER_URI=${{ secrets.MONGODB_ORDER_URI }}
           JWT_SECRET=${{ secrets.JWT_SECRET }}
           RABBITMQ_URI=${{ secrets.RABBITMQ_URI }}
-          AUTH_SERVICE_URL=http://auth:3000
-          PRODUCT_SERVICE_URL=http://product:3001
           EOF
 
       # 3️⃣ Build và start các service cần thiết
