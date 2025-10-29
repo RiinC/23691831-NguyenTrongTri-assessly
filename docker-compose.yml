@@ -52,6 +52,7 @@ services:
     depends_on:
       - mymongodb
       - rabbitmq
+      - auth
     ports:
       - "3001:3001"
     networks:
