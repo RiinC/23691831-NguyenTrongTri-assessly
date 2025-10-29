@@ -9,12 +9,11 @@ chai.use(chaiHttp);
 
 describe("Products", () => {
   let app;
+  let authToken;
 
   before(async () => {
     app = new App();
     await Promise.all([app.connectDB(), app.setupMessageBroker()])
-
-    const authURL = process.env.AUTH_SERVICE_URL;
 
     // Authenticate with the auth microservice to get a token
     const authBase = process.env.AUTH_SERVICE_URL || "http://localhost:3000";
@@ -24,7 +23,7 @@ describe("Products", () => {
       .send({ username: process.env.LOGIN_TEST_USER, password: process.env.LOGIN_TEST_PASSWORD });
 
     authToken = authRes.body.token;
-    console.log(authToken);
+    console.log("Received auth token:", authToken);
     app.start();
   });
 
@@ -40,6 +39,7 @@ describe("Products", () => {
         description: "Description of Product 1",
         price: 10,
       };
+
       const res = await chai
         .request(app.app)
         .post("/api/products")
@@ -49,6 +49,8 @@ describe("Products", () => {
           price: 10,
           description: "Description of Product 1"
         });
+
+      console.log(res.body);
 
       expect(res).to.have.status(201);
       expect(res.body).to.have.property("_id");
@@ -67,6 +69,8 @@ describe("Products", () => {
         .post("/api/products")
         .set("Authorization", `Bearer ${authToken}`)
         .send(product);
+
+      console.log(res.body);
 
       expect(res).to.have.status(400);
     });
