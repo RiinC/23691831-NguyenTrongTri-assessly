@@ -68,7 +68,7 @@ jobs:
       - name: Install dependencies & run product tests
         working-directory: product
         run: |
-          docker compose run --rm --service-ports product npm test
+          docker compose run --rm product npm test
 
       # 6️⃣ Build Docker images cho tất cả các service
       - name: Build Docker Images
