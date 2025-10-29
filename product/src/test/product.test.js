@@ -22,6 +22,8 @@ describe("Products", () => {
       .post("/login")
       .send({ username: process.env.LOGIN_TEST_USER, password: process.env.LOGIN_TEST_PASSWORD });
 
+    console.log("Auth service response:", authRes.body); // Debug: check the whole response
+
     authToken = authRes.body.token;
     console.log("Received auth token:", authToken);
     app.start();
