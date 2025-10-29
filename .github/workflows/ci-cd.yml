@@ -39,6 +39,12 @@ jobs:
           RABBITMQ_URI: ${{ secrets.RABBITMQ_URI }}
           AUTH_SERVICE_URL: ${{ secrets.AUTH_SERVICE_URL }}
 
+      - name: Run auth tests
+        run: |
+          # small wait to let database start accepting connections
+          sleep 5
+          docker compose run --rm auth npm test
+
   build:
     name: Build Images
     runs-on: ubuntu-latest
