@@ -27,7 +27,7 @@ jobs:
           sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose --version  # Kiểm tra phiên bản docker-compose
-          
+
       # Prepare .env for docker-compose (fall back to internal compose services when secrets not provided)
       - name: Create compose .env
         run: |
@@ -47,10 +47,10 @@ jobs:
       - name: Wait for Mongo (via auth container)
         run: |
           for i in $(seq 1 30); do
-            docker-compose exec -T auth node -e "const net=require('net');const s=net.createConnection({host:'mongo',port:27017},()=>{console.log('ok');s.end();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),3000)" >/dev/null 2>&1 && echo 'Mongo ready' && exit 0 || true
+            docker-compose exec -T auth node -e "const net=require('net');const s=net.createConnection({host:'mymongodb',port:27017},()=>{console.log('ok');s.end();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),3000)" >/dev/null 2>&1 && echo 'Mongo ready' && exit 0 || true
             echo "Waiting for Mongo... ($i)"; sleep 2
           done
-          echo 'Mongo did not become ready'; docker-compose logs mongo; docker-compose logs auth; exit 1
+          echo 'Mongo did not become ready'; docker-compose logs mymongodb; docker-compose logs auth; exit 1
 
       - name: Run auth tests (in-container)
         run: docker-compose run --rm auth npm test
