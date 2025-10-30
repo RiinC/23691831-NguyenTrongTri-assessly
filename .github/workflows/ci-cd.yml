@@ -49,6 +49,27 @@ jobs:
       - name: Run auth tests
         run: docker compose run --rm auth npm test
 
+      - name: Wait for Auth service
+        run: |
+          for i in $(seq 1 30); do
+            docker compose exec -T auth sh -c "
+              node -e \"
+                const net = require('net');
+                const s = net.createConnection({ host: 'auth', port: 3000 }, () => { 
+                  console.log('Auth ready'); 
+                  s.end(); 
+                  process.exit(0); 
+                });
+                s.on('error', () => process.exit(1));
+                setTimeout(() => process.exit(1), 3000);
+              \"
+            " >/dev/null 2>&1 && echo 'Auth ready' && exit 0 || true
+            echo "Waiting for Auth service... ($i)"
+            sleep 2
+          done
+          echo 'Auth service did not become ready'
+          docker compose logs auth
+          exit 1
       - name: Run product tests
         run: docker compose run --rm product npm test
 
