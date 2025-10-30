@@ -28,8 +28,11 @@ jobs:
           echo "MONGODB_PRODUCT_URI=${{ secrets.MONGODB_PRODUCT_URI }}" >> .env
           echo "MONGODB_ORDER_URI=${{ secrets.MONGODB_ORDER_URI }}" >> .env
           echo "RABBITMQ_URI=${{ secrets.RABBITMQ_URI }}" >> .env
-          echo "JWT_SECRET=${{ secrets.JWT_SECRET || 'testsecret' }}" >> .env
-          echo "AUTH_SERVICE_URL=${{ secrets.AUTH_SERVICE_URL || 'http://api-gateway:3003' }}" >> .env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+          echo "AUTH_SERVICE_URL=${{ secrets.AUTH_SERVICE_URL }}" >> .env
+          echo "LOGIN_TEST_USER=${{ secrets.LOGIN_TEST_USER }}" >> .env
+          echo "LOGIN_TEST_PASSWORD=${{ secrets.LOGIN_TEST_PASSWORD }}" >> .env
+          
 
       - name: Build and start services
         run: |
@@ -72,6 +75,8 @@ jobs:
           echo "RABBITMQ_URI=${{ secrets.RABBITMQ_URI }}" >> .env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
           echo "AUTH_SERVICE_URL=${{ secrets.AUTH_SERVICE_URL }}" >> .env
+          echo "LOGIN_TEST_USER=${{ secrets.LOGIN_TEST_USER }}" >> .env
+          echo "LOGIN_TEST_PASSWORD=${{ secrets.LOGIN_TEST_PASSWORD }}" >> .env
 
       - name: Build with Docker Compose
         run: docker compose build
