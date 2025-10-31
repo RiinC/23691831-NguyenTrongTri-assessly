@@ -136,7 +136,8 @@ jobs:
 
       - name: Build and Push
         run: |
-          docker buildx build --push -t ghcr.io/${{ github.actor }}/auth:latest ./auth
-          docker buildx build --push -t ghcr.io/${{ github.actor }}/product:latest ./product
-          docker buildx build --push -t ghcr.io/${{ github.actor }}/order:latest ./order
-          docker buildx build --push -t ghcr.io/${{ github.actor }}/gateway:latest ./api-gateway
+          actor_lower=$(echo "${{ github.actor }}" | tr '[:upper:]' '[:lower:]')
+          docker buildx build --push -t ghcr.io/${actor_lower}/auth:latest ./auth
+          docker buildx build --push -t ghcr.io/${actor_lower}/product:latest ./product
+          docker buildx build --push -t ghcr.io/${actor_lower}/order:latest ./order
+          docker buildx build --push -t ghcr.io/${actor_lower}/gateway:latest ./api-gateway
