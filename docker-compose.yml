@@ -74,8 +74,6 @@ services:
       RABBITMQ_URI: ${RABBITMQ_URI}
       AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
       JWT_SECRET: ${JWT_SECRET}
-      LOGIN_TEST_USER: ${LOGIN_TEST_USER}
-      LOGIN_TEST_PASSWORD: ${LOGIN_TEST_PASSWORD}
     command: sh -c "sleep 5 && npm start"
 
   # Order Service
