@@ -17,15 +17,26 @@ describe("Products", () => {
 
     // Authenticate with the auth microservice to get a token
     const authBase = process.env.AUTH_SERVICE_URL || "http://localhost:3000";
-    const authRes = await chai
-      .request(authBase)
-      .post("/login")
-      .send({ username: process.env.LOGIN_TEST_USER, password: process.env.LOGIN_TEST_PASSWORD });
+    const testUser = {
+      username: "testuser",
+      password: "testpassword",
+    };
 
-    console.log("Auth service response:", authRes.body); // Debug: check the whole response
+    // Thử đăng ký user mới (nếu chưa tồn tại)
+    try {
+      const registerRes = await chai.request(authBase).post("/register").send(testUser);
+      console.log("Registered new user:", registerRes.body);
+    } catch (err) {
+      console.log("User might already exist, continuing...");
+    }
+
+    // Đăng nhập để lấy token
+    const authRes = await chai.request(authBase).post("/login").send(testUser);
+    console.log("Auth response:", authRes.body);
 
     authToken = authRes.body.token;
     console.log("Received auth token:", authToken);
+
     app.start();
   });
 
